@@ -18,7 +18,7 @@ def lookup(domain: str) -> str:
     return result.stdout
 
 
-def parse_whois_data(data: str) -> Dict[str, Any]:
+def parse(data: str) -> Dict[str, Any]:
     data = data.split("\n")
     data = [item.split(":") for item in data]
     data = {
@@ -31,7 +31,7 @@ def parse_whois_data(data: str) -> Dict[str, Any]:
     return data
 
 
-def split_domains(filename: str) -> List[str]:
+def load_domains(filename: str) -> List[str]:
     domains = open(filename, "r").read().strip()
     return domains.split(" ")
 
@@ -39,7 +39,7 @@ def split_domains(filename: str) -> List[str]:
 def return_registrar(domain: str) -> str:
     time.sleep(SLEEP)
     data = lookup(domain)
-    data = parse_whois_data(data)
+    data = parse(data)
     if "Registrar" not in data:
         return "Not found"
     registrar = data["Registrar"]
@@ -53,6 +53,6 @@ def return_registrars(domains: List[str]) -> List[str]:
 
 
 if __name__ == "__main__":
-    domains = split_domains("input.txt")
+    domains = load_domains("input.txt")
     result = return_registrars(domains)
     print(result)
