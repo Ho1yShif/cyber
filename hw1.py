@@ -32,7 +32,8 @@ def parse(data: str) -> Dict[str, Any]:
 
 
 def load_domains(filename: str) -> List[str]:
-    domains = open(filename, "r").read().strip()
+    with open(filename, "r") as file:
+        domains = file.read().strip()
     return domains.split(" ")
 
 
