@@ -21,8 +21,6 @@ def lookup(domain: str) -> tuple[str, Optional[str]]:
         if result.returncode != 0:
             return "", f"WHOIS command failed: {result.stderr.strip()}"
         return result.stdout, None
-    except subprocess.TimeoutExpired:
-        return "", "Timeout"
     except Exception as e:
         return "", f"Error: {str(e)}"
 
