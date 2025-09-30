@@ -3,11 +3,18 @@ import subprocess
 from typing import Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor
 
+TIMEOUT = 30
+SLEEP = 0.5
+THREADS = 5
+
 
 def lookup(domain: str) -> str:
-    result = subprocess.run(
-        ["whois", domain], capture_output=True, text=True, timeout=30
-    )
+    try:
+        result = subprocess.run(
+            ["whois", domain], capture_output=True, text=True, timeout=TIMEOUT
+        )
+    except subprocess.TimeoutExpired:
+        return "Timeout"
     return result.stdout
 
 
@@ -30,15 +37,17 @@ def split_domains(filename: str) -> List[str]:
 
 
 def return_registrar(domain: str) -> str:
-    time.sleep(0.5)
+    time.sleep(SLEEP)
     data = lookup(domain)
     data = parse_whois_data(data)
+    if "Registrar" not in data:
+        return "Not found"
     registrar = data["Registrar"]
     return registrar
 
 
 def return_registrars(domains: List[str]) -> List[str]:
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(max_workers=THREADS) as executor:
         result = list(executor.map(return_registrar, domains))
     return result
 
