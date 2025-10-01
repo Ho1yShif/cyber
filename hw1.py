@@ -1,3 +1,4 @@
+import json
 import re
 import time
 import subprocess
@@ -10,14 +11,16 @@ SLEEP = 0.5
 THREADS = 5
 
 
-def lookup(domain: str) -> str:
+def lookup(domain: str) -> Dict[str, Any]:
     try:
         result = subprocess.run(
             ["whois", domain], capture_output=True, text=True, timeout=TIMEOUT
         )
-    except subprocess.TimeoutExpired:
-        return "Timeout"
-    return result.stdout
+        if result.returncode != 0:
+            return {"error": "WHOIS command failed", "stderr": result.stderr}
+        return {"data": result.stdout}
+    except Exception as e:
+        return {"error": f"Lookup failed: {str(e)}"}
 
 
 def load_domains_from_file(filename: str) -> List[str]:
@@ -66,11 +69,18 @@ def parse(data: str) -> Dict[str, Any]:
 def return_registrar(domain: str) -> str:
     time.sleep(SLEEP)
     # Remove www prefix and any protocol prefixes to get the base domain
-    domain = re.sub(r"^(https?://)?www\.", "", domain.lower())
+    normalized_domain = re.sub(r"^(https?://)?www\.", "", domain.lower())
     # Also remove any trailing protocol prefixes if they exist
-    domain = re.sub(r"^https?://", "", domain)
-    whois_data = lookup(domain)
-    data = parse(whois_data)
+    normalized_domain = re.sub(r"^https?://", "", normalized_domain)
+
+    whois_result = lookup(normalized_domain)
+
+    # Check if lookup returned an error
+    if "error" in whois_result:
+        return whois_result["error"]
+
+    # Parse the successful WHOIS data
+    data = parse(whois_result["data"])
 
     # Convert all keys to lowercase for easier matching
     data_lower = {key.lower(): value for key, value in data.items()}
@@ -88,7 +98,6 @@ def return_registrar(domain: str) -> str:
     for field in registrar_fields:
         if field in data_lower and data_lower[field]:
             return data_lower[field]
-
     return "Not found"
 
 
@@ -102,4 +111,5 @@ def return_registrars(domains: List[str]) -> Dict[str, str]:
 if __name__ == "__main__":
     domains = handle_input()
     result = return_registrars(domains)
-    print(result)
+    result_json = json.dumps(result)
+    print(result_json)
